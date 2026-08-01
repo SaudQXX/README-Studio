@@ -9,66 +9,70 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   dailyAttempts: number;
-  refreshUserData: () => Promise<void>;
+  refreshUserData: (currentUser: User) => Promise<void>;
   lang: 'en' | 'ar';
-  setLang: (l: 'en' | 'ar') => void;
+  setLang: (lang: 'en' | 'ar') => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DAILY_LIMIT = 5;
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dailyAttempts, setDailyAttempts] = useState(DAILY_LIMIT);
-  const [lang, setLangState] = useState<'en' | 'ar'>(() => {
-    const saved = localStorage.getItem('readme_studio_lang');
-    return (saved === 'en' || saved === 'ar') ? saved : 'ar';
-  });
+  const [dailyAttempts, setDailyAttempts] = useState(5);
+  const [lang, setLang] = useState<'en' | 'ar'>('ar');
 
-  const setLang = (l: 'en' | 'ar') => {
-    setLangState(l);
-    localStorage.setItem('readme_studio_lang', l);
-  };
-
-  const refreshUserData = async (currentUser: User = user!) => {
-    if (!currentUser) return;
+  const refreshUserData = async (currentUser: User) => {
     try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      const userSnap = await getDoc(userRef);
-      
-      const now = new Date();
-      const today = now.toISOString().split('T')[0];
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      const today = new Date().toISOString().split('T')[0];
 
-      if (userSnap.exists()) {
-        const data = userSnap.data();
-        if (data.lastResetDate !== today) {
-          // Reset daily attempts
-          await setDoc(userRef, {
-            dailyAttempts: DAILY_LIMIT,
-            lastResetDate: today
-          }, { merge: true });
-          setDailyAttempts(DAILY_LIMIT);
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        if (data.lastAttemptDate === today) {
+          setDailyAttempts(data.remainingAttempts ?? 0);
         } else {
-          setDailyAttempts(data.dailyAttempts);
+          // Reset daily attempts on new day
+          await setDoc(userDocRef, {
+            remainingAttempts: 5,
+            lastAttemptDate: today,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+          setDailyAttempts(5);
         }
       } else {
-        // New user
-        await setDoc(userRef, {
-          displayName: currentUser.displayName,
+        // Create new user record
+        await setDoc(userDocRef, {
           email: currentUser.email,
+          displayName: currentUser.displayName,
           photoURL: currentUser.photoURL,
-          dailyAttempts: DAILY_LIMIT,
-          lastResetDate: today,
-          createdAt: serverTimestamp()
+          remainingAttempts: 5,
+          lastAttemptDate: today,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
         });
-        setDailyAttempts(DAILY_LIMIT);
+        setDailyAttempts(5);
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      console.error("Error syncing user with Firestore:", error);
     }
   };
+
+  useEffect(() => {
+    // Detect system or browser language
+    const savedLang = localStorage.getItem('language') as 'en' | 'ar' | null;
+    if (savedLang) {
+      setLang(savedLang);
+    } else {
+      const browserLang = navigator.language.startsWith('ar') ? 'ar' : 'en';
+      setLang(browserLang);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('language', lang);
+  }, [lang]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
