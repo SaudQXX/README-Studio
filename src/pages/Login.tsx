@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, Sparkles, Languages, Eye, EyeOff, Loader2, ExternalLink } from 'lucide-react';
+import { Mail, Lock, Sparkles, Languages, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -9,69 +9,65 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfi
 const TRANSLATIONS = {
   en: {
     welcome: "Welcome to README.Studio",
-    subtitle: "Create beautiful, professional readmes with AI in seconds",
-    signIn: "Sign In",
-    signUp: "Sign Up",
+    description: "Generate professional, structured README.md files for your projects in minutes using AI.",
+    or: "or continue with email",
     email: "Email Address",
     password: "Password",
     confirmPassword: "Confirm Password",
-    or: "Or continue with",
-    googleBtn: "Sign in with Google",
-    noAccount: "Don't have an account? Sign up",
-    hasAccount: "Already have an account? Sign in",
-    errorRequired: "Please fill in all required fields",
+    signIn: "Sign In",
+    signUp: "Sign Up",
+    loginBtn: "Sign In with Email",
+    registerBtn: "Create Account",
+    googleBtn: "Continue with Google",
+    noAccount: "Don't have an account?",
+    hasAccount: "Already have an account?",
+    errorFields: "Please fill in all fields",
     errorMatch: "Passwords do not match",
-    emailPlaceholder: "yourname@example.com",
+    emailPlaceholder: "you@example.com",
     passwordPlaceholder: "Enter your password",
     confirmPlaceholder: "Confirm your password",
     successMsg: "Authenticated successfully!",
-    iframeWarning: "Note: Since you are viewing this app inside a preview frame, Google Sign-In may be blocked by your browser's third-party cookie restrictions.",
-    openInNewTab: "Open App in New Tab to Sign In",
   },
   ar: {
     welcome: "مرحباً بك في README.Studio",
-    subtitle: "أنشئ ملفات README احترافية وجذابة باستخدام الذكاء الاصطناعي في ثوانٍ معدودة",
-    signIn: "تسجيل الدخول",
-    signUp: "إنشاء حساب جديد",
+    description: "أنشئ ملفات README.md احترافية ومنظمة لمشاريعك البرمجية في دقائق باستخدام الذكاء الاصطناعي.",
+    or: "أو تابع باستخدام البريد الإلكتروني",
     email: "البريد الإلكتروني",
     password: "كلمة المرور",
     confirmPassword: "تأكيد كلمة المرور",
-    or: "أو الاستمرار بواسطة",
-    googleBtn: "تسجيل الدخول باستخدام Google",
-    noAccount: "ليس لديك حساب؟ سجل الآن",
-    hasAccount: "لديك حساب بالفعل؟ سجل دخولك",
-    errorRequired: "يرجى تعبئة جميع الحقول المطلوبة",
+    signIn: "تسجيل الدخول",
+    signUp: "حساب جديد",
+    loginBtn: "تسجيل الدخول بالبريد",
+    registerBtn: "إنشاء حساب جديد",
+    googleBtn: "المتابعة باستخدام Google",
+    noAccount: "ليس لديك حساب؟",
+    hasAccount: "لديك حساب بالفعل؟",
+    errorFields: "يرجى ملء جميع الحقول المطلوبة",
     errorMatch: "كلمات المرور غير متطابقة",
     emailPlaceholder: "yourname@example.com",
     passwordPlaceholder: "أدخل كلمة المرور الخاصة بك",
     confirmPlaceholder: "أعد كتابة كلمة المرور",
     successMsg: "تم تسجيل الدخول بنجاح!",
-    iframeWarning: "تنبيه: بما أنك تتصفح التطبيق من داخل إطار المعاينة، فقد يحظر متصفحك تسجيل الدخول عبر Google بسبب قيود ملفات تعريف الارتباط.",
-    openInNewTab: "افتح التطبيق في نافذة جديدة لتسجيل الدخول بنجاح",
   }
 };
 
 export default function Login() {
   const { user, signInWithGoogle, lang, setLang } = useAuth();
   const navigate = useNavigate();
-  const [isSignUp, setIsSignUp] = useState(false);
+
+  // Form States
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  
+  // UI states
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isIframe, setIsIframe] = useState(false);
-  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const t = TRANSLATIONS[lang];
   const isRTL = lang === 'ar';
-
-  useEffect(() => {
-    setIsIframe(window.self !== window.top);
-  }, []);
 
   useEffect(() => {
     if (user) {
@@ -79,224 +75,237 @@ export default function Login() {
     }
   }, [user, navigate]);
 
-  const toggleAuthMode = () => {
-    setIsSignUp(!isSignUp);
+  const toggleLanguage = () => {
+    setLang(lang === 'en' ? 'ar' : 'en');
     setErrorMessage(null);
   };
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    setUnauthorizedDomain(null);
     try {
       await signInWithGoogle();
     } catch (error: any) {
       console.error("Google Sign-In Error in Login component:", error);
-      
-      const isDomainError = 
-        error?.code === 'auth/unauthorized-domain' || 
-        error?.message?.includes('unauthorized-domain') || 
-        String(error).includes('unauthorized-domain');
-
-      if (isDomainError) {
-        setUnauthorizedDomain(window.location.hostname);
-        setErrorMessage(
-          lang === 'ar' 
-            ? 'النطاق الحالي غير مصرح به في إعدادات مشروع Firebase الخاص بك.' 
-            : 'The current domain is not authorized in your Firebase project configuration.'
-        );
-      } else {
-        setErrorMessage(error?.message || String(error));
-      }
+      setErrorMessage(error?.message || String(error));
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!email || !password || (isSignUp && (!confirmPassword || !displayName))) {
-      setErrorMessage(t.errorRequired);
+    if (!email || !password || (activeTab === 'signup' && !confirmPassword)) {
+      setErrorMessage(t.errorFields);
       return;
     }
 
-    if (isSignUp && password !== confirmPassword) {
+    if (activeTab === 'signup' && password !== confirmPassword) {
       setErrorMessage(t.errorMatch);
       return;
     }
 
     setIsLoading(true);
     try {
-      if (isSignUp) {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, {
-          displayName: displayName
-        });
-        // Force state refresh
-        window.location.reload();
-      } else {
+      if (activeTab === 'signin') {
         await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Set a default display name from the first part of email
+        const displayName = email.split('@')[0];
+        await updateProfile(userCredential.user, { displayName });
       }
-    } catch (error: any) {
-      console.error("Email auth error:", error);
-      setErrorMessage(error.message || "An authentication error occurred.");
+    } catch (err: any) {
+      console.error(err);
+      let friendlyError = err.message;
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        friendlyError = lang === 'ar' ? "البريد الإلكتروني أو كلمة المرور غير صحيحة." : "Incorrect email or password.";
+      } else if (err.code === 'auth/email-already-in-use') {
+        friendlyError = lang === 'ar' ? "هذا البريد الإلكتروني مستخدم بالفعل." : "This email is already in use.";
+      } else if (err.code === 'auth/weak-password') {
+        friendlyError = lang === 'ar' ? "كلمة المرور ضعيفة جداً (على الأقل 6 خانات)." : "Password is too weak (at least 6 characters).";
+      } else if (err.code === 'auth/invalid-email') {
+        friendlyError = lang === 'ar' ? "البريد الإلكتروني غير صالح." : "Invalid email address.";
+      }
+      setErrorMessage(friendlyError);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0B10] flex flex-col justify-center items-center px-4 relative overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Dynamic Ambient Background Glows */}
-      <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-[#F2A93B]/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className="flex flex-col items-center justify-center min-h-[85vh] px-4" dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Top Bar for Language switching */}
+      <div className="w-full max-w-md flex justify-end mb-4">
+        <button
+          onClick={toggleLanguage}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1B1E2A] border border-[#2A2E3D] text-[#9AA0B4] hover:text-[#EDEFF7] text-xs font-semibold transition-all shadow-sm"
+        >
+          <Languages size={14} className="text-[#F2A93B]" />
+          <span>{lang === 'en' ? 'العربية' : 'English'}</span>
+        </button>
+      </div>
 
-      {/* Language Toggle Button */}
-      <button
-        onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-        className="absolute top-6 right-6 flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#12141C] border border-[#2A2E3D] text-[#EDEFF7] hover:text-white transition-all text-xs cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-      >
-        <Languages size={14} />
-        <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
-      </button>
-
-      {/* Logo and Brand Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center mb-8 text-center max-w-md"
+        className="bg-[#1B1E2A] border border-[#2A2E3D] p-8 sm:p-10 rounded-[12px] shadow-2xl max-w-md w-full relative overflow-hidden"
       >
-        <div className="w-14 h-14 bg-gradient-to-tr from-[#F2A93B] to-amber-500 rounded-[14px] flex items-center justify-center shadow-lg shadow-[#F2A93B]/20 mb-4 border border-[#F5B95C]/20">
-          <Sparkles className="text-white w-7 h-7" />
-        </div>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-[#EDEFF7] tracking-tight">{t.welcome}</h1>
-        <p className="text-sm text-[#9AA0B4] mt-2 px-4 leading-relaxed">{t.subtitle}</p>
-      </motion.div>
+        {/* Decorative corner glow */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#F2A93B]/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#3FB950]/5 rounded-full blur-3xl pointer-events-none"></div>
 
-      {/* Primary Authentication Card */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md bg-[#12141C]/90 border border-[#2A2E3D]/80 rounded-[16px] shadow-2xl p-6 md:p-8 backdrop-blur-md relative z-10"
-      >
-        {/* Toggle tabs for sign-in and sign-up */}
-        <div className="flex bg-[#0A0B10] p-1 rounded-[10px] border border-[#2A2E3D]/40 mb-6">
+        {/* Header Logo & Title */}
+        <div className="text-center mb-8 relative">
+          <div className="relative inline-block">
+            <div className="w-20 h-20 mx-auto rounded-2xl mb-4 p-0.5 bg-gradient-to-tr from-[#F2A93B] to-[#ffc875] shadow-xl">
+              <img 
+                src="/logo.jpeg" 
+                alt="README.Studio Logo" 
+                className="w-full h-full rounded-2xl object-cover" 
+              />
+            </div>
+            <span className="absolute -top-1.5 -right-1.5 bg-[#F2A93B] text-[#12141C] p-1.5 rounded-full shadow-lg border border-[#1B1E2A]">
+              <Sparkles size={11} className="animate-pulse text-[#12141C]" />
+            </span>
+          </div>
+          <h1 className="text-2xl font-display font-bold text-[#EDEFF7] tracking-tight">{t.welcome}</h1>
+          <p className="text-[#9AA0B4] mt-2 text-sm leading-relaxed">{t.description}</p>
+        </div>
+
+        {/* Email Tabs */}
+        <div className="flex bg-[#12141C] p-1 rounded-[8px] border border-[#2A2E3D] mb-6">
           <button
-            onClick={() => { setIsSignUp(false); setErrorMessage(null); }}
-            className={`flex-1 py-2 text-sm font-semibold rounded-[8px] transition-all cursor-pointer ${
-              !isSignUp ? 'bg-[#1B1E2A] text-white shadow-sm' : 'text-[#9AA0B4] hover:text-[#EDEFF7]'
+            type="button"
+            onClick={() => { setActiveTab('signin'); setErrorMessage(null); }}
+            className={`flex-1 py-2 text-xs sm:text-sm font-semibold rounded-[6px] transition-all ${
+              activeTab === 'signin' 
+                ? 'bg-[#1B1E2A] text-[#F2A93B] shadow-md border border-[#2A2E3D]' 
+                : 'text-[#9AA0B4] hover:text-[#EDEFF7]'
             }`}
           >
             {t.signIn}
           </button>
           <button
-            onClick={() => { setIsSignUp(true); setErrorMessage(null); }}
-            className={`flex-1 py-2 text-sm font-semibold rounded-[8px] transition-all cursor-pointer ${
-              isSignUp ? 'bg-[#1B1E2A] text-white shadow-sm' : 'text-[#9AA0B4] hover:text-[#EDEFF7]'
+            type="button"
+            onClick={() => { setActiveTab('signup'); setErrorMessage(null); }}
+            className={`flex-1 py-2 text-xs sm:text-sm font-semibold rounded-[6px] transition-all ${
+              activeTab === 'signup' 
+                ? 'bg-[#1B1E2A] text-[#F2A93B] shadow-md border border-[#2A2E3D]' 
+                : 'text-[#9AA0B4] hover:text-[#EDEFF7]'
             }`}
           >
             {t.signUp}
           </button>
         </div>
 
-        {/* Dynamic Error Messaging Panel */}
-        <AnimatePresence mode="wait">
-          {errorMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-4 p-3 rounded-[8px] bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center font-medium leading-relaxed"
-            >
-              {errorMessage}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+        {/* Form Container (Email) */}
         <form onSubmit={handleEmailAuth} className="space-y-4">
-          {isSignUp && (
-            <div>
-              <label className="block text-xs font-semibold text-[#9AA0B4] uppercase tracking-wider mb-1.5">
-                {lang === 'ar' ? 'الاسم بالكامل' : 'Full Name'}
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder={lang === 'ar' ? 'أدخل اسمك الكريم' : 'John Doe'}
-                required
-                className="w-full bg-[#0A0B10] border border-[#2A2E3D] focus:border-[#F2A93B] text-[#EDEFF7] text-sm py-2.5 px-4 rounded-[8px] outline-none transition-all placeholder-[#5D6377]"
-              />
-            </div>
-          )}
-
           <div>
-            <label className="block text-xs font-semibold text-[#9AA0B4] uppercase tracking-wider mb-1.5">{t.email}</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#9AA0B4] mb-2">
+              {t.email}
+            </label>
             <div className="relative">
-              <Mail className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} text-[#5D6377] w-4.5 h-4.5`} />
+              <div className={`absolute inset-y-0 ${isRTL ? 'right-0 pr-3.5' : 'left-0 pl-3.5'} flex items-center pointer-events-none text-[#5D6377]`}>
+                <Mail size={16} />
+              </div>
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t.emailPlaceholder}
-                required
-                className="w-full bg-[#0A0B10] border border-[#2A2E3D] focus:border-[#F2A93B] text-[#EDEFF7] text-sm py-2.5 px-4 rounded-[8px] outline-none transition-all placeholder-[#5D6377]"
+                dir="ltr"
+                className={`w-full bg-[#12141C] border border-[#2A2E3D] rounded-[8px] py-2.5 ${isRTL ? 'pr-11 pl-4 text-right' : 'pl-11 pr-4 text-left'} text-[#EDEFF7] placeholder-[#5D6377] focus:outline-none focus:border-[#F2A93B] focus:ring-1 focus:ring-[#F2A93B] transition-all text-sm`}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#9AA0B4] uppercase tracking-wider mb-1.5">{t.password}</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#9AA0B4] mb-2">
+              {t.password}
+            </label>
             <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} text-[#5D6377] hover:text-[#EDEFF7] transition-colors cursor-pointer`}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+              <div className={`absolute inset-y-0 ${isRTL ? 'right-0 pr-3.5' : 'left-0 pl-3.5'} flex items-center pointer-events-none text-[#5D6377]`}>
+                <Lock size={16} />
+              </div>
               <input
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t.passwordPlaceholder}
-                required
-                className="w-full bg-[#0A0B10] border border-[#2A2E3D] focus:border-[#F2A93B] text-[#EDEFF7] text-sm py-2.5 px-4 rounded-[8px] outline-none transition-all placeholder-[#5D6377]"
+                dir="ltr"
+                className={`w-full bg-[#12141C] border border-[#2A2E3D] rounded-[8px] py-2.5 ${isRTL ? 'pr-11 pl-10 text-right' : 'pl-11 pr-10 text-left'} text-[#EDEFF7] placeholder-[#5D6377] focus:outline-none focus:border-[#F2A93B] focus:ring-1 focus:ring-[#F2A93B] transition-all text-sm`}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className={`absolute inset-y-0 ${isRTL ? 'left-0 pl-3.5' : 'right-0 pr-3.5'} flex items-center text-[#5D6377] hover:text-[#9AA0B4] transition-colors`}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
 
-          {isSignUp && (
-            <div>
-              <label className="block text-xs font-semibold text-[#9AA0B4] uppercase tracking-wider mb-1.5">{t.confirmPassword}</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder={t.confirmPlaceholder}
-                required
-                className="w-full bg-[#0A0B10] border border-[#2A2E3D] focus:border-[#F2A93B] text-[#EDEFF7] text-sm py-2.5 px-4 rounded-[8px] outline-none transition-all placeholder-[#5D6377]"
-              />
-            </div>
-          )}
+          <AnimatePresence initial={false}>
+            {activeTab === 'signup' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#9AA0B4] mb-2">
+                    {t.confirmPassword}
+                  </label>
+                  <div className="relative">
+                    <div className={`absolute inset-y-0 ${isRTL ? 'right-0 pr-3.5' : 'left-0 pl-3.5'} flex items-center pointer-events-none text-[#5D6377]`}>
+                      <Lock size={16} />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required={activeTab === 'signup'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder={t.confirmPlaceholder}
+                      dir="ltr"
+                      className={`w-full bg-[#12141C] border border-[#2A2E3D] rounded-[8px] py-2.5 ${isRTL ? 'pr-11 pl-4' : 'pl-11 pr-4'} text-[#EDEFF7] placeholder-[#5D6377] focus:outline-none focus:border-[#F2A93B] focus:ring-1 focus:ring-[#F2A93B] transition-all text-sm`}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
+          {/* Validation/Authentication Error Messages */}
+          <AnimatePresence>
+            {errorMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="p-3 bg-[#F85149]/10 border border-[#F85149]/30 text-[#F85149] rounded-[8px] text-xs font-medium"
+              >
+                {errorMessage}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-[#F2A93B] to-amber-500 hover:from-[#f09a1a] hover:to-[#e6910f] text-white font-semibold py-2.5 px-4 rounded-[8px] transition-all duration-200 shadow-md shadow-[#F2A93B]/10 hover:shadow-[#F2A93B]/20 flex items-center justify-center gap-2 cursor-pointer mt-2"
+            className="w-full flex items-center justify-center gap-2 bg-[#F2A93B] hover:bg-[#d99635] text-[#12141C] font-bold py-2.5 px-6 rounded-[8px] transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed text-sm mt-2 shadow-md cursor-pointer"
           >
             {isLoading ? (
-              <Loader2 className="animate-spin w-4.5 h-4.5" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <span>{isSignUp ? t.signUp : t.signIn}</span>
+              activeTab === 'signin' ? t.loginBtn : t.registerBtn
             )}
           </button>
         </form>
@@ -334,101 +343,6 @@ export default function Login() {
           </svg>
           <span className="text-sm">{t.googleBtn}</span>
         </button>
-
-        {/* Firebase Unauthorized Domain Setup Instructions */}
-        {unauthorizedDomain && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="mt-4 p-4 rounded-[8px] bg-[#1a1216]/90 border border-red-500/30 text-xs leading-relaxed space-y-3"
-          >
-            <div className="flex items-start gap-2 text-red-400 font-semibold mb-1">
-              <span className="shrink-0 text-red-500 text-sm">⚠️</span>
-              <span>
-                {lang === 'ar' 
-                  ? 'يجب إضافة النطاق إلى Authorized Domains في Firebase!' 
-                  : 'This domain must be authorized in Firebase settings!'}
-              </span>
-            </div>
-            
-            <p className="text-[#EDEFF7]">
-              {lang === 'ar'
-                ? 'يقوم Google بحظر تسجيل الدخول حتى تضيف نطاق موقعك الحالي إلى قائمة النطاقات المعتمدة في مشروعك. يرجى اتباع هذه الخطوات:'
-                : 'Google blocks sign-in until you add your current website domain to the authorized list in your project. Please follow these steps:'}
-            </p>
-
-            <ol className="list-decimal list-inside space-y-2 text-[#9AA0B4] bg-[#12141C]/60 p-3 rounded-[6px] border border-[#2A2E3D]/40">
-              <li>
-                {lang === 'ar'
-                  ? 'افتح وحدة تحكم Firebase واذهب لمشروعك.'
-                  : 'Open the Firebase Console & select your project.'}
-              </li>
-              <li>
-                {lang === 'ar'
-                  ? 'اذهب إلى Authentication من القائمة الجانبية ثم تبويب Settings.'
-                  : 'Go to Authentication in the sidebar, then select Settings tab.'}
-              </li>
-              <li>
-                {lang === 'ar'
-                  ? 'انزل لأسفل الصفحة إلى قسم Authorized domains (النطاقات المصرح بها).'
-                  : 'Scroll down to the Authorized domains section.'}
-              </li>
-              <li>
-                {lang === 'ar'
-                  ? 'اضغط على Add domain (إضافة نطاق) وأضف هذا النطاق بدقة:'
-                  : 'Click Add domain and add this exact domain:'}
-                
-                <div className="mt-2 space-y-1.5 font-mono text-xs">
-                  {/* Current Preview Domain */}
-                  <div className="flex items-center justify-between bg-[#1B1E2A] px-2.5 py-1 rounded border border-[#2A2E3D]">
-                    <span className="text-[#F2A93B] select-all truncate">{unauthorizedDomain}</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(unauthorizedDomain)}
-                      className="ml-2 text-xs text-[#EDEFF7] hover:text-[#F2A93B] hover:underline cursor-pointer"
-                    >
-                      {copied ? (lang === 'ar' ? 'تم النسخ!' : 'Copied!') : (lang === 'ar' ? 'نسخ' : 'Copy')}
-                    </button>
-                  </div>
-                  {/* User Vercel Domain */}
-                  <div className="flex items-center justify-between bg-[#1B1E2A] px-2.5 py-1 rounded border border-[#2A2E3D]">
-                    <span className="text-[#F2A93B] select-all truncate">readme-studio-one.vercel.app</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard('readme-studio-one.vercel.app')}
-                      className="ml-2 text-xs text-[#EDEFF7] hover:text-[#F2A93B] hover:underline cursor-pointer"
-                    >
-                      {lang === 'ar' ? 'نسخ' : 'Copy'}
-                    </button>
-                  </div>
-                </div>
-              </li>
-              <li>
-                {lang === 'ar'
-                  ? 'اضغط على Save (حفظ) وسيعمل تسجيل الدخول بالكامل!'
-                  : 'Click Save, and Google sign-in will work instantly!'}
-              </li>
-            </ol>
-          </motion.div>
-        )}
-
-        {/* Iframe Support Warning & Redirection */}
-        {isIframe && (
-          <div className="mt-4 p-4 rounded-[8px] bg-[#221611]/40 border border-[#F2A93B]/20 text-[#ffcc80] text-xs leading-relaxed space-y-3">
-            <p className="flex items-start gap-2">
-              <span className="shrink-0 text-[#F2A93B] font-bold text-sm">💡</span>
-              <span>{t.iframeWarning}</span>
-            </p>
-            <button
-              type="button"
-              onClick={() => window.open(window.location.href, '_blank')}
-              className="w-full flex items-center justify-center gap-2 bg-[#F2A93B]/10 hover:bg-[#F2A93B]/20 border border-[#F2A93B]/30 hover:border-[#F2A93B]/50 text-[#F2A93B] font-semibold py-2 px-4 rounded-[6px] transition-all text-xs cursor-pointer"
-            >
-              <ExternalLink size={14} />
-              <span>{t.openInNewTab}</span>
-            </button>
-          </div>
-        )}
       </motion.div>
     </div>
   );
