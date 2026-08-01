@@ -1,11 +1,45 @@
-<div align="center">
+# README.Studio (Internal Developer Setup)
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+## Prerequisites
+- Node.js (v18+)
+- npm or pnpm
 
-  <h1>Built with AI Studio</h2>
+## Environment Setup
+1. Copy `.env.example` to `.env` in the root directory.
+2. Fill in the required environment variables:
+   - `GEMINI_API_KEY`: Get this from AI Studio.
+   - `APP_URL`: Your local or hosted app URL.
+   - Firebase variables: Follow the Firebase console to get these.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Installation
+Run the following command to install both frontend and backend dependencies:
+```bash
+npm install
+```
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Running the App Locally
+We use a combined Express and Vite setup. To run the local dev server:
+```bash
+npm run dev
+```
+The server will start on port 3000 (http://localhost:3000).
 
-</div>
+## Building for Production
+```bash
+npm run build
+```
+This builds the Vite frontend and bundles the Express backend to `dist/server.cjs`.
+
+To run the production build:
+```bash
+npm run start
+```
+
+## Linting & Formatting
+- **Lint (TS Strict Check)**: `npm run lint`
+- **Format**: `npm run format`
+
+## Architecture
+- `src/`: Frontend React components, hooks, services.
+- `server/`: Backend services, API routes, and prompt builders.
+- `server.ts`: The main Express server entry point.
