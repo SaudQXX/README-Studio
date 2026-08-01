@@ -38,7 +38,7 @@ if (fs.existsSync(firebaseConfigPath)) {
   }
 }
 
-const apiKey = process.env["README.Studio_API_KEY"] || process.env.README_STUDIO_API_KEY || process.env.GEMINI_API_KEY;
+const apiKey = process.env.README_STUDIO_API_KEY || process.env.GEMINI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
 const app = express();
