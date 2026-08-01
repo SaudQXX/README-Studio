@@ -92,12 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await signInWithPopup(auth, googleProvider);
       }
     } catch (error) {
-      console.error("Error signing in with Google, falling back to redirect:", error);
-      try {
-        await signInWithRedirect(auth, googleProvider);
-      } catch (redirectError) {
-        console.error("Redirect auth error:", redirectError);
-      }
+      console.error("Error signing in with Google:", error);
+      throw error;
     }
   };
 
