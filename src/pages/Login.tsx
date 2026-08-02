@@ -5,6 +5,7 @@ import { Mail, Lock, Sparkles, Languages, Eye, EyeOff, Loader2 } from 'lucide-re
 import { motion, AnimatePresence } from 'motion/react';
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import logoImg from '../assets/logo.jpeg';
 
 const TRANSLATIONS = {
   en: {
@@ -162,7 +163,7 @@ export default function Login() {
           <div className="relative inline-block">
             <div className="w-20 h-20 mx-auto rounded-2xl mb-4 p-0.5 bg-gradient-to-tr from-[#F2A93B] to-[#ffc875] shadow-xl">
               <img 
-                src="/logo.jpeg" 
+                src={logoImg} 
                 alt="README.Studio Logo" 
                 className="w-full h-full rounded-2xl object-cover" 
               />

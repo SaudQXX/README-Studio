@@ -2,22 +2,39 @@ import express from "express";
 import path from "path";
 import cors from "cors";
 import dotenv from "dotenv";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import fs from 'fs';
 
 dotenv.config();
 
-// Initialize Firebase Admin safely using readme-studio or environment variables
+// Initialize Firebase Admin safely using service account, readme-studio or environment variables
 try {
   if (!getApps().length) {
-    const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "readme-studio";
-    initializeApp({
-      projectId: projectId,
-    });
+    const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT || process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (serviceAccountEnv) {
+      try {
+        const serviceAccount = JSON.parse(serviceAccountEnv);
+        initializeApp({
+          credential: cert(serviceAccount),
+          projectId: serviceAccount.project_id || process.env.VITE_FIREBASE_PROJECT_ID || "readme-studio",
+        });
+        console.log("Firebase Admin initialized using Service Account Key.");
+      } catch (parseError) {
+        console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON, falling back to basic initialization:", parseError);
+        initializeApp({
+          projectId: process.env.VITE_FIREBASE_PROJECT_ID || "readme-studio",
+        });
+      }
+    } else {
+      const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "readme-studio";
+      initializeApp({
+        projectId: projectId,
+      });
+      console.log("Firebase Admin initialized with project ID:", projectId);
+    }
   }
 } catch (error) {
   console.error("Failed to initialize Firebase Admin:", error);
@@ -125,9 +142,9 @@ Return ONLY the raw Markdown content for the README.md. Do not wrap it in \`\`\`
     });
 
     res.json({ readme: readmeContent });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Generation error:", error);
-    res.status(500).json({ error: "Failed to generate README" });
+    res.status(500).json({ error: error.message || "Failed to generate README" });
   }
 });
 
@@ -138,6 +155,7 @@ async function initServer() {
     const PORT = 3000;
     
     if (process.env.NODE_ENV !== "production") {
+      const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: "spa",

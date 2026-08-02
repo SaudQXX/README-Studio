@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Questionnaire from './pages/Questionnaire';
 import Success from './pages/Success';
+import logoImg from './assets/logo.jpeg';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -35,13 +36,13 @@ function AppContent() {
       <nav className="border-b border-[#2A2E3D] bg-[#12141C]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.jpeg" alt="README.Studio" className="w-8 h-8 rounded-lg object-cover ring-1 ring-[#F2A93B]/40 shadow-sm" />
+            <img src={logoImg} alt="README.Studio" className="w-8 h-8 rounded-lg object-cover ring-1 ring-[#F2A93B]/40 shadow-sm" />
             <span className="font-display font-bold text-lg tracking-tight">README.Studio</span>
           </div>
           {user && (
             <div className="flex items-center gap-4">
               {user.photoURL && (
-                <img src={user.photoURL} alt={user.displayName || "User"} className="w-8 h-8 rounded-full border border-[#2A2E3D]" />
+                <img src={user.photoURL} alt={user.displayName || "User"} referrerPolicy="no-referrer" className="w-8 h-8 rounded-full border border-[#2A2E3D]" />
               )}
               <button 
                 onClick={signOut}

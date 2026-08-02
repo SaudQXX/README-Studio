@@ -114,7 +114,14 @@ export default function Questionnaire() {
         body: JSON.stringify({ description, answers: formattedAnswers })
       });
 
-      const data = await res.json();
+      let data: any = {};
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const errorText = await res.text();
+        throw new Error(errorText || `Server error: ${res.status} ${res.statusText}`);
+      }
       
       if (!res.ok) {
         throw new Error(data.error || ui.errorMsg);
