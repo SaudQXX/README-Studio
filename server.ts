@@ -11,31 +11,16 @@ import fs from 'fs';
 
 dotenv.config();
 
-// Initialize Firebase Admin safely
-const firebaseConfigPath = path.join(process.cwd(), 'firebase-applet-config.json');
-if (fs.existsSync(firebaseConfigPath)) {
-  try {
-    const configRaw = fs.readFileSync(firebaseConfigPath, 'utf8');
-    const firebaseConfig = JSON.parse(configRaw);
-    if (!getApps().length) {
-      initializeApp({
-        projectId: firebaseConfig.projectId,
-      });
-    }
-  } catch (error) {
-    console.error("Failed to initialize Firebase Admin:", error);
+// Initialize Firebase Admin safely using readme-studio or environment variables
+try {
+  if (!getApps().length) {
+    const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "readme-studio";
+    initializeApp({
+      projectId: projectId,
+    });
   }
-} else {
-  // Fallback for Vercel using environment variables if config file isn't present
-  try {
-    if (!getApps().length && process.env.VITE_FIREBASE_PROJECT_ID) {
-      initializeApp({
-        projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-      });
-    }
-  } catch (error) {
-    console.error("Failed to initialize Firebase Admin using env variables:", error);
-  }
+} catch (error) {
+  console.error("Failed to initialize Firebase Admin:", error);
 }
 
 const apiKey = process.env.README_STUDIO_API_KEY || process.env.GEMINI_API_KEY;
